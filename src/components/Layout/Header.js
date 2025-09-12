@@ -60,7 +60,7 @@ const Header = ({ session, onLogout }) => {
               letterSpacing: '-0.02em',
             }}
           >
-            District Nursing Network
+            Durban North Nursing
           </Typography>
         </Box>
 
