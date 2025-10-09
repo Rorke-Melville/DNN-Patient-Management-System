@@ -76,7 +76,7 @@ const LoginScreen = ({ onLogin }) => {
               textShadow: '0 2px 4px rgba(0,0,0,0.3)',
             }}
           >
-            District Nursing Network
+            Durban North Nursing
           </Typography>
           <Typography
             variant="h6"

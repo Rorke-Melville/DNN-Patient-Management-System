@@ -84,14 +84,19 @@ const PatientProfile = ({ open, onClose, patient }) => {
           value: formatPhone(patient.phone_number)
         },
         {
-          icon: <Email />,
-          label: 'Email',
-          value: patient.email || 'Not provided'
-        },
-        {
           icon: <LocationOn />,
           label: 'Address',
           value: patient.address || 'Not provided'
+        }
+      ]
+    },
+    {
+      title: 'Past Appointment',
+      items: [
+        {
+          icon: <Cake />,
+          label: 'Last Appointment',
+          value: patient.last_appointment ? formatDate(patient.last_appointment) : 'Not available',
         }
       ]
     }
@@ -109,40 +114,21 @@ const PatientProfile = ({ open, onClose, patient }) => {
         }
       }}
     >
-      <DialogTitle sx={{ pb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar
-            sx={{
-              bgcolor: 'primary.main',
-              width: 56,
-              height: 56,
-            }}
-          >
-            <Person sx={{ fontSize: 32 }} />
-          </Avatar>
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 600 }}>
-              Patient Profile
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Complete patient information
-            </Typography>
-          </Box>
-        </Box>
-      </DialogTitle>
-
       <DialogContent sx={{ pt: 1 }}>
         {/* Patient Header Card */}
         <Card 
           elevation={0}
           sx={{ 
-            mb: 3,
+            mb: 4,
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             color: 'white',
+            maxWidth: '70%',
+            margin: '0 auto',
+            textAlign: 'center',
           }}
         >
           <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
               <Avatar
                 sx={{
                   bgcolor: 'rgba(255,255,255,0.2)',
@@ -157,7 +143,7 @@ const PatientProfile = ({ open, onClose, patient }) => {
                 <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
                   {patient.first_name} {patient.last_name}
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'center' }}>
                   {patient.date_of_birth && (
                     <Chip
                       label={`${calculateAge(patient.date_of_birth)} years old`}
@@ -176,10 +162,10 @@ const PatientProfile = ({ open, onClose, patient }) => {
         </Card>
 
         {/* Profile Sections */}
-        <Grid container spacing={3}>
+        <Grid container spacing={2} sx={{ justifyContent: 'center', mt: 4 }}>
           {profileSections.map((section, sectionIndex) => (
-            <Grid item xs={12} md={6} key={sectionIndex}>
-              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200' }}>
+            <Grid item xs={12} md={4} key={sectionIndex} sx={{ minWidth: 0 }}>
+              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', minWidth: '100%', minHeight: 300 }}>
                 <CardContent>
                   <Typography 
                     variant="h6" 
@@ -211,7 +197,7 @@ const PatientProfile = ({ open, onClose, patient }) => {
                             variant="body1" 
                             sx={{ 
                               fontWeight: 500,
-                              color: item.value === 'Not provided' ? 'text.secondary' : 'text.primary'
+                              color: item.value === 'Not provided' || item.value === 'Not available' ? 'text.secondary' : 'text.primary'
                             }}
                           >
                             {item.value}

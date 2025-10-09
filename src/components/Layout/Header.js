@@ -65,16 +65,6 @@ const Header = ({ session, onLogout }) => {
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography 
-            variant="body2" 
-            sx={{ 
-              color: 'text.secondary',
-              display: { xs: 'none', sm: 'block' },
-            }}
-          >
-            Welcome, Nurse
-          </Typography>
-          
           <IconButton
             size="large"
             aria-label="account of current user"

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import { Snackbar, Alert } from '@mui/material';
 
 // Import components with error handling
-let LoginScreen, Dashboard, AppointmentsList, BookAppointmentForm, RecordForm, PatientSearch, PatientProfile, PatientHistory, Layout;
+let LoginScreen, Dashboard, AppointmentsList, BookAppointmentForm, RecordForm, PatientSearch, PatientProfile, PatientHistory, Layout, PatientAdd;
 
 try {
   LoginScreen = require('./components/Auth/LoginScreen').default;
@@ -61,6 +62,13 @@ try {
 }
 
 try {
+  PatientAdd = require('./components/Patients/PatientAdd').default;
+} catch (e) {
+  console.error('Failed to import PatientAdd:', e);
+  PatientAdd = () => <div>Error: PatientAdd component not found</div>;
+}
+
+try {
   Layout = require('./components/Layout/Layout').default;
 } catch (e) {
   console.error('Failed to import Layout:', e);
@@ -74,7 +82,9 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 function App() {
   const [session, setSession] = useState(null);
   const [appointments, setAppointments] = useState([]);
-  const [completedToday, setCompletedToday] = useState(0); // New counter
+  const [pastAppointments, setPastAppointments] = useState([]);
+  const [completedToday, setCompletedToday] = useState(0);
+  const [totalCompleted, setTotalCompleted] = useState(0);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [showRecordForm, setShowRecordForm] = useState(null);
   const [recordAppointmentDetails, setRecordAppointmentDetails] = useState(null);
@@ -83,14 +93,20 @@ function App() {
   const [selectedPatientProfile, setSelectedPatientProfile] = useState(null);
   const [selectedPatientHistory, setSelectedPatientHistory] = useState(null);
   const [patientHistoryData, setPatientHistoryData] = useState(null);
+  const [nurseName, setNurseName] = useState('');
+  const [showAddPatient, setShowAddPatient] = useState(false);
+  const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
         fetchAppointments(session.user.id);
-        fetchCompletedToday(session.user.id); // Load initial count
+        fetchPastAppointments(session.user.id);
+        fetchCompletedToday(session.user.id);
+        fetchTotalCompleted(session.user.id);
         fetchPatients();
+        fetchNurseProfile(session.user.id);
       }
     });
 
@@ -98,8 +114,11 @@ function App() {
       setSession(session);
       if (session) {
         fetchAppointments(session.user.id);
+        fetchPastAppointments(session.user.id);
         fetchCompletedToday(session.user.id);
+        fetchTotalCompleted(session.user.id);
         fetchPatients();
+        fetchNurseProfile(session.user.id);
       }
     });
 
@@ -113,7 +132,8 @@ function App() {
       .eq('nurse_id', nurseId)
       .eq('status', 'Scheduled')
       .order('appointment_date', { ascending: true })
-      .order('appointment_time', { ascending: true });
+      .order('appointment_time', { ascending: true })
+      .limit(5);
     if (error) {
       console.error('Fetch error:', error);
       alert('Oops! Couldn\'t load appointments. Check console.');
@@ -123,17 +143,55 @@ function App() {
     }
   };
 
-  const fetchCompletedToday = async (nurseId) => {
-    const today = new Date().toISOString().split('T')[0]; // e.g., "2025-09-12"
+  const fetchPastAppointments = async (nurseId) => {
     const { data, error } = await supabase
       .from('appointments')
-      .select('id', { count: 'exact' })
+      .select('id, appointment_date, appointment_time, status, patients(first_name, last_name)')
+      .eq('nurse_id', nurseId)
+      .eq('status', 'Completed')
+      .order('appointment_date', { ascending: false })
+      .order('appointment_time', { ascending: false })
+      .limit(5);
+    if (error) {
+      console.error('Fetch past appointments error:', error);
+      alert('Oops! Couldn\'t load past appointments. Check console.');
+    } else {
+      const unique = [...new Map(data.map(item => [item.id, item])).values()];
+      setPastAppointments(unique);
+    }
+  };
+
+  const fetchCompletedToday = async (nurseId) => {
+    const today = new Date().toISOString().split('T')[0];
+    const { count, error } = await supabase
+      .from('appointments')
+      .select('*', { count: 'exact', head: true })
       .eq('nurse_id', nurseId)
       .eq('status', 'Completed')
       .gte('appointment_date', today)
       .lte('appointment_date', today);
     if (error) console.error('Completed today count error:', error);
-    else setCompletedToday(data.length || 0);
+    else setCompletedToday(count || 0);
+  };
+
+  const fetchTotalCompleted = async (nurseId) => {
+    const { count, error } = await supabase
+      .from('appointments')
+      .select('*', { count: 'exact', head: true })
+      .eq('nurse_id', nurseId)
+      .eq('status', 'Completed');
+    if (error) console.error('Total completed count error:', error);
+    else setTotalCompleted(count || 0);
+  };
+
+  const fetchNurseProfile = async (userId) => {
+    const { data, error } = await supabase
+      .from('nurses')
+      .select('first_name')
+      .eq('id', userId)
+      .single();
+    if (error) console.error('Error fetching nurse profile:', error);
+    else setNurseName(data?.first_name || '');
   };
 
   const fetchPatients = async () => {
@@ -212,7 +270,21 @@ function App() {
     setShowRecordForm(null);
     setRecordAppointmentDetails(null);
     await fetchAppointments(session.user.id);
-    await fetchCompletedToday(session.user.id); // Update counter
+    await fetchPastAppointments(session.user.id);
+    await fetchCompletedToday(session.user.id);
+    await fetchTotalCompleted(session.user.id);
+    return { success: true };
+  };
+
+  const handleAddPatient = async (patientData) => {
+    const { error } = await supabase.from('patients').insert(patientData);
+    if (error) {
+      console.error('Add patient error:', error);
+      setToast({ open: true, message: 'Failed to add patient. Try again!', severity: 'error' });
+      return { success: false };
+    }
+    await fetchPatients();
+    setToast({ open: true, message: 'Patient added successfully!', severity: 'success' });
     return { success: true };
   };
 
@@ -250,16 +322,24 @@ function App() {
     if (error) console.error('Logout error:', error);
   };
 
+  const handleCloseToast = () => {
+    setToast({ ...toast, open: false });
+  };
+
   if (!session) return <LoginScreen onLogin={handleLogin} />;
 
   return (
     <Layout onLogout={handleLogout} session={session}>
       <Dashboard
         appointments={appointments}
+        pastAppointments={pastAppointments}
         onBookAppointment={() => setShowBookingForm(true)}
         onSearchPatients={() => setShowPatientSearch(true)}
         onCompleteAppointment={handleCompleteAppointment}
-        completedToday={completedToday} // Pass to Dashboard
+        completedToday={completedToday}
+        totalCompleted={totalCompleted}
+        onAddPatient={() => setShowAddPatient(true)}
+        nurseName={nurseName}
       />
       <BookAppointmentForm
         open={showBookingForm}
@@ -298,6 +378,21 @@ function App() {
         patient={selectedPatientHistory}
         history={patientHistoryData}
       />
+      <PatientAdd
+        open={showAddPatient}
+        onClose={() => setShowAddPatient(false)}
+        onSubmit={handleAddPatient}
+      />
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={3000}
+        onClose={handleCloseToast}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={handleCloseToast} severity={toast.severity} sx={{ width: '100%' }}>
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </Layout>
   );
 }

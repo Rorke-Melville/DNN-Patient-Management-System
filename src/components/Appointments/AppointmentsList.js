@@ -19,7 +19,7 @@ import {
   Today,
 } from '@mui/icons-material';
 
-const AppointmentsList = ({ appointments, onComplete }) => {
+const AppointmentsList = ({ appointments, onComplete, isUpcoming }) => {
   const theme = useTheme();
 
   const getStatusColor = (status) => {
@@ -76,17 +76,17 @@ const AppointmentsList = ({ appointments, onComplete }) => {
       >
         <Today sx={{ fontSize: 64, mb: 2, opacity: 0.3 }} />
         <Typography variant="h6" gutterBottom>
-          No appointments scheduled
+          No {isUpcoming ? 'upcoming' : 'past'} appointments.
         </Typography>
         <Typography variant="body2">
-          Book your first appointment to get started
+          {isUpcoming ? 'Book your first appointment' : 'No past appointments recorded'}
         </Typography>
       </Box>
     );
   }
 
   return (
-    <List sx={{ width: '100%' }}>
+    <List sx={{ width: '100%', maxHeight: 300, overflow: 'auto' }}>
       {appointments.map((appointment, index) => (
         <React.Fragment key={appointment.id}>
           <ListItem
@@ -123,13 +123,15 @@ const AppointmentsList = ({ appointments, onComplete }) => {
                   >
                     {appointment.patients.first_name} {appointment.patients.last_name}
                   </Typography>
-                  <Chip
-                    icon={getStatusIcon(appointment.status)}
-                    label={appointment.status}
-                    color={getStatusColor(appointment.status)}
-                    size="small"
-                    variant="outlined"
-                  />
+                  {isUpcoming && (
+                    <Chip
+                      icon={getStatusIcon(appointment.status)}
+                      label={appointment.status}
+                      color={getStatusColor(appointment.status)}
+                      size="small"
+                      variant="outlined"
+                    />
+                  )}
                 </Box>
               }
               secondary={
@@ -155,9 +157,9 @@ const AppointmentsList = ({ appointments, onComplete }) => {
             />
             
             <ListItemSecondaryAction>
-              {appointment.status === 'Scheduled' && (
+              {appointment.status === 'Scheduled' && isUpcoming && onComplete && (
                 <Button
-                  variant="contained"
+                  variant="outlined"
                   color="success"
                   size="small"
                   startIcon={<CheckCircle />}
@@ -166,19 +168,19 @@ const AppointmentsList = ({ appointments, onComplete }) => {
                     minWidth: 100,
                     textTransform: 'none',
                     fontWeight: 500,
+                    borderColor: '#4caf50',
+                    color: '#4caf50',
+                    '&:hover': {
+                      borderColor: '#388e3c',
+                      color: '#388e3c',
+                      backgroundColor: '#4caf5010',
+                    },
                   }}
                 >
-                  Complete
+                  Mark as Complete
                 </Button>
               )}
-              {appointment.status === 'Completed' && (
-                <Chip
-                  label="Done"
-                  color="success"
-                  size="small"
-                  icon={<CheckCircle />}
-                />
-              )}
+              {appointment.status === 'Completed' && !isUpcoming && null} {/* Hide "Done" Chip for past */}
             </ListItemSecondaryAction>
           </ListItem>
           

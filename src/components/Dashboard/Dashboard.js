@@ -16,20 +16,25 @@ import {
   CalendarToday,
   People,
   Assignment,
+  CheckCircle,
 } from '@mui/icons-material';
 import AppointmentsList from '../Appointments/AppointmentsList';
 
 const Dashboard = ({ 
   appointments, 
+  pastAppointments,
   onBookAppointment, 
   onSearchPatients, 
   onCompleteAppointment,
-  completedToday // Added from App.js
+  completedToday,
+  totalCompleted,
+  onAddPatient,
+  nurseName,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // Calculate stats (use prop for completedToday)
+  // Calculate stats
   const todayAppointments = appointments.filter(app => {
     const today = new Date().toDateString();
     return new Date(app.appointment_date).toDateString() === today;
@@ -44,33 +49,39 @@ const Dashboard = ({
       title: "Today's Appointments",
       value: todayAppointments,
       icon: <CalendarToday />,
-      color: theme.palette.primary.main,
+      color: '#2196f3', // Blue
     },
     {
       title: 'Pending Appointments',
       value: pendingAppointments,
       icon: <Assignment />,
-      color: theme.palette.warning.main,
+      color: '#ff9800', // Orange
     },
     {
       title: 'Completed Today',
-      value: completedToday, // Use prop instead of filter
+      value: completedToday,
       icon: <People />,
-      color: theme.palette.success.main,
+      color: '#4caf50', // Green
+    },
+    {
+      title: 'Total Appointments',
+      value: totalCompleted,
+      icon: <CheckCircle />,
+      color: '#e91e63', // Pink
     },
   ];
 
   return (
-    <Box>
+    <Box sx={{ px: { xs: 2, md: 4 }, py: 2 }}>
       {/* Header Section */}
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mb: 4, textAlign: 'center' }}>
         <Typography 
           variant="h4" 
           component="h1" 
           gutterBottom
           sx={{ fontWeight: 600, color: 'text.primary' }}
         >
-          Dashboard
+          Hi, {nurseName || 'Nurse'}!
         </Typography>
         <Typography 
           variant="body1" 
@@ -81,7 +92,7 @@ const Dashboard = ({
         </Typography>
 
         {/* Quick Actions */}
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
           <Button
             variant="contained"
             startIcon={<Add />}
@@ -98,69 +109,106 @@ const Dashboard = ({
           >
             Search Patients
           </Button>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={onAddPatient}
+            sx={{ minWidth: { xs: '100%', sm: 'auto' } }}
+          >
+            Add Patient
+          </Button>
         </Box>
       </Box>
 
       {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {statsCards.map((stat, index) => (
-          <Grid item xs={12} sm={6} md={4} key={index}>
-            <Card
-              sx={{
-                background: `linear-gradient(135deg, ${stat.color}15 0%, ${stat.color}05 100%)`,
-                border: `1px solid ${stat.color}20`,
-              }}
-            >
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Box
+      <Box sx={{ mb: 4, maxWidth: '100%', mx: 'auto' }}>
+        <Grid container spacing={3} sx={{ justifyContent: 'center' }}>
+          {statsCards.map((stat, index) => (
+            <Grid item xs={12} sm={6} md={3} key={index}>
+              <Card
+                sx={{
+                  background: `linear-gradient(135deg, ${stat.color}15 0%, ${stat.color}05 100%)`,
+                  border: `1px solid ${stat.color}20`,
+                  height: '100%',
+                }}
+              >
+                <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                    <Box
+                      sx={{
+                        p: 1,
+                        borderRadius: 1.5,
+                        backgroundColor: `${stat.color}20`,
+                        color: stat.color,
+                        mr: 1.5,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {React.cloneElement(stat.icon, { sx: { fontSize: 22 } })}
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.9rem' }}>
+                      {stat.title}
+                    </Typography>
+                  </Box>
+                  <Typography
+                    variant="h3"
+                    component="p"
                     sx={{
-                      p: 1,
-                      borderRadius: 2,
-                      backgroundColor: `${stat.color}20`,
+                      fontWeight: 700,
                       color: stat.color,
-                      mr: 2,
+                      ml: 5.5,
                     }}
                   >
-                    {stat.icon}
-                  </Box>
-                  <Typography variant="h6" color="text.secondary">
-                    {stat.title}
+                    {stat.value}
                   </Typography>
-                </Box>
-                <Typography
-                  variant="h3"
-                  component="p"
-                  sx={{
-                    fontWeight: 700,
-                    color: stat.color,
-                    ml: 6,
-                  }}
-                >
-                  {stat.value}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
 
-      {/* Appointments List */}
-      <Card>
-        <CardContent>
-          <Typography 
-            variant="h6" 
-            gutterBottom
-            sx={{ mb: 3, fontWeight: 600 }}
-          >
-            Upcoming Appointments
-          </Typography>
-          <AppointmentsList
-            appointments={appointments}
-            onComplete={onCompleteAppointment}
-          />
-        </CardContent>
-      </Card>
+      {/* Appointments Section */}
+      <Grid container spacing={0} sx={{ width: '100%', margin: 0 }}>
+        <Grid item xs={12} md={6} sx={{ padding: 0, width: '50%' }}>
+          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <CardContent sx={{ flexGrow: 1, p: 2 }}>
+              <Typography 
+                variant="h6" 
+                gutterBottom
+                sx={{ mb: 3, fontWeight: 600 }}
+              >
+                Upcoming Appointments
+              </Typography>
+              <AppointmentsList
+                appointments={appointments}
+                onComplete={onCompleteAppointment}
+                isUpcoming={true}
+              />
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={6} sx={{ padding: 0, width: '50%' }}>
+          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <CardContent sx={{ flexGrow: 1, p: 2 }}>
+              <Typography 
+                variant="h6" 
+                gutterBottom
+                sx={{ mb: 3, fontWeight: 600 }}
+              >
+                Past Appointments
+              </Typography>
+              <AppointmentsList
+                appointments={pastAppointments}
+                onComplete={null}
+                isUpcoming={false}
+              />
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
 
       {/* Floating Action Button for Mobile */}
       {isMobile && (

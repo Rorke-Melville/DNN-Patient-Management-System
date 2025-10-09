@@ -11,7 +11,7 @@ import {
   Alert,
   CircularProgress,
   Autocomplete,
-  MenuItem, // Added this import!
+  MenuItem,
 } from '@mui/material';
 import {
   Close,
@@ -19,6 +19,9 @@ import {
   Person,
   Schedule,
 } from '@mui/icons-material';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
 const BookAppointmentForm = ({ 
   open, 
@@ -27,8 +30,8 @@ const BookAppointmentForm = ({
   onSubmit,
   loading = false 
 }) => {
-  const [selectedPatient, setSelectedPatient] = useState(null); // Changed to object for Autocomplete
-  const [date, setDate] = useState('');
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [date, setDate] = useState(null);
   const [time, setTime] = useState('');
   const [error, setError] = useState('');
 
@@ -38,10 +41,10 @@ const BookAppointmentForm = ({
       return;
     }
 
-    // Validate date is not in the past
-    const selectedDate = new Date(`${date}T${time}`);
+    const selectedDateTime = new Date(date);
+    selectedDateTime.setHours(...time.split(':').map(Number));
     const now = new Date();
-    if (selectedDate < now) {
+    if (selectedDateTime < now) {
       setError('Please select a future date and time');
       return;
     }
@@ -49,8 +52,8 @@ const BookAppointmentForm = ({
     setError('');
     try {
       await onSubmit({
-        patientId: selectedPatient.id, // Use patient ID from selected object
-        date,
+        patientId: selectedPatient.id,
+        date: date.toISOString().split('T')[0],
         time
       });
       handleClose();
@@ -61,13 +64,12 @@ const BookAppointmentForm = ({
 
   const handleClose = () => {
     setSelectedPatient(null);
-    setDate('');
+    setDate(null);
     setTime('');
     setError('');
     onClose();
   };
 
-  // Generate time slots (8 AM to 6 PM, 30-minute intervals)
   const generateTimeSlots = () => {
     const slots = [];
     for (let hour = 8; hour < 18; hour++) {
@@ -85,9 +87,7 @@ const BookAppointmentForm = ({
   };
 
   const timeSlots = generateTimeSlots();
-
-  // Get minimum date (today)
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date();
 
   return (
     <Dialog 
@@ -101,19 +101,19 @@ const BookAppointmentForm = ({
         }
       }}
     >
-      <DialogTitle sx={{ pb: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <DialogTitle sx={{ pb: 1, textAlign: 'center' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
           <CalendarToday color="primary" />
           <Typography variant="h6" component="span" sx={{ fontWeight: 600 }}>
             Book New Appointment
           </Typography>
         </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, textAlign: 'center' }}>
           Schedule a visit with your patient
         </Typography>
       </DialogTitle>
 
-      <DialogContent sx={{ pt: 2 }}>
+      <DialogContent sx={{ pt: 5, pt: 2 }}>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
@@ -137,25 +137,60 @@ const BookAppointmentForm = ({
                   ),
                 }}
                 fullWidth
+                InputLabelProps={{
+                  shrink: true,
+                }}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': { 
+                    borderRadius: 2, 
+                    paddingTop: '12px',
+                    minHeight: '56px',
+                  },
+                  '& .MuiInputLabel-root': {
+                    transform: 'translate(14px, 9px) scale(1)',
+                    '&.Mui-focused': {
+                      transform: 'translate(14px, -9px) scale(0.75)',
+                    },
+                    '&.MuiInputLabel-shrink': {
+                      transform: 'translate(14px, -9px) scale(0.75)',
+                    },
+                  },
+                  '& .MuiAutocomplete-input': {
+                    padding: '8px 14px',
+                  },
+                }}
               />
             )}
             isOptionEqualToValue={(option, value) => option.id === value?.id}
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
           />
 
-          <TextField
-            fullWidth
-            label="Appointment Date"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            InputLabelProps={{
-              shrink: true,
-            }}
-            inputProps={{
-              min: today,
-            }}
-          />
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <DatePicker
+              label="Appointment Date"
+              value={date}
+              onChange={(newDate) => setDate(newDate)}
+              minDate={today}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  fullWidth
+                  InputProps={{
+                    startAdornment: (
+                      <CalendarToday sx={{ mr: 1, color: 'action.active' }} />
+                    ),
+                  }}
+                  sx={{ 
+                    '& .MuiOutlinedInput-root': { 
+                      borderRadius: 2,
+                      '& .MuiInputBase-input': {
+                        padding: '10px 14px',
+                      },
+                    },
+                  }}
+                />
+              )}
+            />
+          </LocalizationProvider>
 
           <TextField
             fullWidth
